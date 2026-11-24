@@ -11,21 +11,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Decode SSH Key
-        run: |
-          echo "${{ secrets.EC2_SSH_KEY_B64 }}" | base64 --decode > private_key.pem
-          chmod 600 private_key.pem
-
-      - name: Copy files to EC2
-        run: |
-          scp -o StrictHostKeyChecking=no -i private_key.pem -r . ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app
-
-      - name: Run application on EC2
-        run: |
-          ssh -o StrictHostKeyChecking=no -i private_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY_B64 }}
+          script: |
             mkdir -p ~/app
             cd ~/app
             npm install
             sudo pkill -f node || true
             sudo node app.js &
-          EOF
